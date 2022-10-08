@@ -22,8 +22,6 @@ from miscc.utils import mkdir_p
 from trainer import GANTrainer
 
 
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a GAN network')
     parser.add_argument('--cfg', dest='cfg_file',
@@ -35,7 +33,20 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-if __name__ == "__main__":
+def video_transform(video, image_transform):
+    vid = []
+    for im in video:
+        vid.append(image_transform(im))
+
+    vid = torch.stack(vid).permute(1, 0, 2, 3)
+
+    return vid
+
+
+def extract_channel(x):
+    return x[:3, ::]
+
+def main():
     args = parse_args()
     dir_path = '../clevr_dataset/'
     #args.cfg_file = './cfg/clevr.yml'
@@ -64,17 +75,8 @@ if __name__ == "__main__":
         transforms.Resize( (cfg.IMSIZE, cfg.IMSIZE) ),
         #transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        lambda x: x[:n_channels, ::],
+        extract_channel,
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    def video_transform(video, image_transform):
-        vid = []
-        for im in video:
-            vid.append(image_transform(im))
-
-        vid = torch.stack(vid).permute(1, 0, 2, 3)
-
-        return vid
     
     video_transforms = functools.partial(video_transform, image_transform=image_transforms)
 
@@ -97,3 +99,6 @@ if __name__ == "__main__":
 
     algo = GANTrainer(output_dir, cfg.ST_WEIGHT, test_sample_save_dir)
     algo.train(imageloader, storyloader, testloader)
+
+if __name__ == "__main__":
+    main()
